@@ -78,7 +78,7 @@ int sendSignal(pid_t pid, int value)
     return resValue;
 }
 
-int sleepFor(long val)
+int delaySending(long val)
 {
     struct timespec t = {0, val};
 

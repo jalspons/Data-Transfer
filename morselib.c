@@ -75,7 +75,7 @@ char decodeMorse(int val)
     return morses[val];
 }
 
-int getShiftN(int morseCode)
+int codeShifts(int morseCode)
 {
     int n;
     

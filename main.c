@@ -60,11 +60,11 @@ int main(int argc, char *argv[])
     }
    
     else if (childPid == 0) {
-        pid_t ppid = getppid();
-        
         char buf[MAXBUF];
         size_t nread;
 
+        pid_t ppid = getppid();
+        
         if ((file = open(argv[1], READ_FLAGS)) == -1) {
             sendSignal(ppid, FILENOTFOUND);
             errExit("Child open");
@@ -73,12 +73,12 @@ int main(int argc, char *argv[])
         while((nread = read(file, buf, sizeof(buf))) > 0) {
             for (int i = 0; i < nread; i++) {
                if (isspace(buf[i])) {
-                   sleepFor(LONGPAUSE);
+                   delaySending(LONGPAUSE);
                } else {
                    int code = encodeMorse(buf[i]);
                    printf("C -  sent '%c': %d\n", buf[i], code);
                    
-                   for (int j = getShiftN(code)-1; j >= 0; j--) {
+                   for (int j = codeShifts(code)-1; j >= 0; j--) {
                        int signal = (code >> j & 1) ? LONG : SHORT;
                        
                        if (sendSignal(ppid, signal) == -1) {
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
                            errExit("Child sendSignal");
                        }
                    }
-                   sleepFor(SHORTPAUSE);
+                   delaySending(SHORTPAUSE);
                }
            }
         }
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
             errExit("Parent Sigaction");
         }
       
-        if ((file = open(argv[2], WRITE_FLAGS, FILE_PERMS)) == -1) {
+        if ((file = creat(argv[2], FILE_PERMS))== -1) {
            errExit("open");
         }
 
@@ -127,20 +127,19 @@ int main(int argc, char *argv[])
 
         /* Add pipe read-end to fd_set */
         FD_ZERO(&watchset);
-        FD_SET(pipefd[0], &watchset);
+        FD_SET(readFd, &watchset);
        
         /* Loop for receiving signals and writing to a file */
-        while(FD_ISSET(pipefd[0], &watchset)) {
+        while(FD_ISSET(readFd, &watchset)) {
             inset = watchset;
             
             /* Wait for signals or data in pipe. Otherwise timeout */
-            if ((ready = pselect(pipefd[0]+1, &inset, 
+            if ((ready = pselect(readFd+1, &inset, 
                             NULL, NULL, &timeout, NULL)) < 1) 
             {
                 /* Error handling*/
-               if(ready == 0) {
-                   FD_CLR(pipefd[0], &watchset);
-                   break;
+               if(!ready) {
+                   FD_CLR(readFd, &watchset);
                } else if (errno == EINTR) {
                    continue;
                } else {
@@ -151,9 +150,9 @@ int main(int argc, char *argv[])
 
             /* If data is available in pipe, */
             /* read data and write to file */
-            if (FD_ISSET(pipefd[0], &inset)) {
-                if(read(pipefd[0], &c, 1) < 0) {
-                   close(pipefd[0]);
+            if (FD_ISSET(readFd, &inset)) {
+                if(read(readFd, &c, 1) < 0) {
+                   close(readFd);
                    perror("read");
                 }
                 
@@ -169,8 +168,8 @@ int main(int argc, char *argv[])
 
         printf("Parent caught %d signals\n", sigCnt);
        
-        close(pipefd[0]);
-        close(pipefd[1]);
+        close(readFd);
+        close(sigpipe);
         close(file);
     }
     

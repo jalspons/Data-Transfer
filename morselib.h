@@ -9,7 +9,7 @@ int encodeMorse(char c);
 
 char decodeMorse(int val);
 
-int getShiftN(int morseCode);
+int codeShifts(int morseCode);
 
 
 #endif
