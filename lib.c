@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <time.h>
+#include <fcntl.h>
 
 
 #include "lib.h"
@@ -13,8 +15,9 @@
 
 static int sigCnt = 0;
 static struct timespec prev, new;
+static const char *logfile = "morse.log";
+static int logfd;
 
-/* S = 0.003 seconds, L = 0.007 seconds */
 
 int initTime(void)
 {
@@ -35,14 +38,6 @@ long getTimeDiff()
 
     return diff;
 }
-
-struct timespec getTimeInSec(int sec)
-{
-    struct timespec t = {sec, 0};
-
-    return t;
-}
-
 
 int getSigCount()
 {
@@ -85,3 +80,31 @@ int delaySending(long val)
     return clock_nanosleep(CLOCK_MONOTONIC, 0, &t, NULL); 
 }
 
+
+int initLog(void)
+{
+    if ((logfd = open(logfile, WRITE_FLAGS, FILE_PERMS)) == -1) {
+        perror("Logfile init");
+        return EXIT_FAILURE;
+    }
+
+    dprintf(logfd, "\n---Log starting----\n");
+    return EXIT_SUCCESS;
+}
+
+int log_out(char *fmt, ...)
+{
+    int res;
+    va_list args;
+
+    va_start(args, fmt);
+    res = vdprintf(logfd, fmt, args);
+    va_end(args);
+
+    return res;
+}
+
+int log_stop(void)
+{
+    return close(logfd);
+}

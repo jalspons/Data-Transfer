@@ -13,11 +13,9 @@
 #include "morselib.h"
 
 
-static int file;
-static volatile int sigCnt = 0;
-static int val = 0;
-static int sigpipe;
-static const struct timespec timeout = {1, 0}; 
+static int file, sigpipe;
+static int val = 0, sigCnt = 0;
+static const struct timespec onesec = {1, 0};
 
 static void sigHandler(int sig, siginfo_t *si, void *ucontext)
 {
@@ -49,24 +47,29 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    pid_t childPid;
+    pid_t childpid, parentpid;
+    parentpid = getpid();
+
+    if(initLog() == -1) {
+        errExit("Init log");
+    }
 
     if(initTime() == -1) {
         errExit("Init time");
     }
-    
-    if ((childPid = fork()) == -1) {
-        errExit("fork");
+
+    if ((childpid = fork()) == -1) {
+        errExit("Fork");
     }
    
-    else if (childPid == 0) {
+    else if (childpid == 0) {
         char buf[MAXBUF];
         size_t nread;
 
-        pid_t ppid = getppid();
-        
+        childpid = getpid();
+
         if ((file = open(argv[1], READ_FLAGS)) == -1) {
-            sendSignal(ppid, FILENOTFOUND);
+            sendSignal(parentpid, FILENOTFOUND);
             errExit("Child open");
         }
         
@@ -76,12 +79,13 @@ int main(int argc, char *argv[])
                    delaySending(LONGPAUSE);
                } else {
                    int code = encodeMorse(buf[i]);
-                   printf("C -  sent '%c': %d\n", buf[i], code);
+                   log_out("Child[%ld] sent '%c': %d\n", 
+                           (long)childpid, buf[i], code);
                    
                    for (int j = codeShifts(code)-1; j >= 0; j--) {
                        int signal = (code >> j & 1) ? LONG : SHORT;
                        
-                       if (sendSignal(ppid, signal) == -1) {
+                       if (sendSignal(parentpid, signal) == -1) {
                            close(file);
                            errExit("Child sendSignal");
                        }
@@ -93,10 +97,10 @@ int main(int argc, char *argv[])
         if (nread < 0) {
             errExit("Child read");
         }
-
-        printf("Child sent %d signals\n", getSigCount());
        
-        close(file);
+        log_out("Child[%ld] sent %d signals\n", 
+                (long)childpid, getSigCount());
+      
     }
     
     else { 
@@ -135,7 +139,7 @@ int main(int argc, char *argv[])
             
             /* Wait for signals or data in pipe. Otherwise timeout */
             if ((ready = pselect(readFd+1, &inset, 
-                            NULL, NULL, &timeout, NULL)) < 1) 
+                            NULL, NULL, &onesec, NULL)) < 1) 
             {
                 /* Error handling*/
                if(!ready) {
@@ -157,21 +161,29 @@ int main(int argc, char *argv[])
                 }
                 
                 c = decodeMorse(c);
-                printf("P - caught char: '%c'\n", c);
+                log_out("Parent[%ld] caught '%c'\n", 
+                        (long)parentpid, c);   
                 write(file, &c, 1);
             }
         }
-        
+       
+        /* Catch the last char */
         c = decodeMorse(val);
         write(file,&c, 1);
-        printf("P - Last char: '%c'\n", c); 
+        log_out("Parent[%ld] caught '%c'\n", 
+                (long)parentpid, c);   
 
-        printf("Parent caught %d signals\n", sigCnt);
-       
+        /* Send total amount of signals count */
+        log_out("Parent[%ld] caught %d signals\n", 
+                (long)parentpid, sigCnt);   
+      
+        /* close pipe */
         close(readFd);
         close(sigpipe);
-        close(file);
+
     }
+    
+    close(file);
     
     exit(EXIT_SUCCESS);
 }
