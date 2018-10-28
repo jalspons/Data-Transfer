@@ -5,9 +5,10 @@
 
 #include "morselib.h"
 
-static const char *morses = " *ETIANMSURWDKGOHVF*L*PJBXCYZQ**54*3***2*******16*******7***8*90";
+static const char *morses = " \nETIANMSURWDKGOHVF*L*PJBXCYZQ**"\
+                             "54*3***2*******16*******7***8*90";
 
-static const int morseIndexAlphas[] = {
+static const int morsecode_index_alphas[] = {
     5,  // A
     24, // B
     26, // C
@@ -33,10 +34,10 @@ static const int morseIndexAlphas[] = {
     11, // W
     25, // X
     27, // Y
-    28,  // Z
+    28, // Z
 };
 
-static const short morseIndexNumbers[] = {
+static const short morsecode_index_nums[] = {
     63, // 0
     47, // 1
     39, // 2
@@ -49,40 +50,44 @@ static const short morseIndexNumbers[] = {
     62, // 9
 };
 
-static const short space = {
-    0, /* space character */
+static const short control_chars[] = {
+    0, /* Space */
+    1, /* Newline */
 };
 
-int encodeMorse(char c)
+int encode_morse(char c)
 {
-    int cIndex;
+    int index;
     
-    if (isspace(c)) {
-        cIndex = space;
-    }
-    else if (isdigit(c)) {
-        cIndex = morseIndexNumbers[(int)c - 48];
-    }
-    else if (isalpha(c)) {
-        cIndex = morseIndexAlphas[(int)tolower(c) -  97];
-    }
+    if (isspace(c))
+        index = control_chars[0];
+    else if (c == '\n')
+        index = control_chars[1];
+    else if (isdigit(c))
+        index = morsecode_index_nums[(int)c - 48];
+    else if (isalpha(c))
+        index = morsecode_index_alphas[(int)tolower(c) -  97];
     
-    return cIndex;
+    return index;
 }
 
-char decodeMorse(int val)
+char decode_morse(int val)
 {
     return morses[val];
 }
 
-int codeShifts(int morseCode)
+int morsecode_len(int morseCode)
 {
     int n;
     
-    if (morseCode < 4) n = 2;
-    else if (morseCode < 8) n = 3;
-    else if (morseCode < 16) n = 4;
-    else if (morseCode < 32) n = 5;
+    if (morseCode < 4) 
+        n = 2;
+    else if (morseCode < 8) 
+        n = 3;
+    else if (morseCode < 16) 
+        n = 4;
+    else if (morseCode < 32) 
+        n = 5;
 
     return n;
 }
