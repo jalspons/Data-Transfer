@@ -118,7 +118,7 @@ int log_err(char *msg)
     snprintf(errMsg, ERRBUF, "[%ld] %s Error %s: %s\n", 
              (long)getpid(), timeBuffer, msg, strerror(errno));
 
-    return dprintf(logfd, errMsg);
+    return dprintf(logfd, "%s", errMsg);
 }
 
 int log_close(void)

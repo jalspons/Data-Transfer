@@ -17,6 +17,13 @@ static int val = 0, sigCnt = 0;
 static int pipefd[2], file;
 static const struct timespec twosec = {2, 0};
 static pid_t childpid, ppid;
+
+static const char *usage = "./DataTransfer file1 file2\n"
+                            "\n"
+                            "file1 = source file that contains data in an alphanumeric form\n"
+                            "file2 = target file. A new file is created if the existing cannot be found.\n"
+                            "\n";
+
 static void handle_termination(void);
 
 static void sig_handler(int sig, siginfo_t *si, void *ucontext)
@@ -55,7 +62,7 @@ static void sig_handler(int sig, siginfo_t *si, void *ucontext)
 int main(int argc, char *argv[]) 
 {
     if(argc < 3 || argc > 4) {
-        printf("Usage: %s file1 file2\n", argv[0]);
+        fprintf(stderr,"%s", usage);
         exit(EXIT_FAILURE);
     }
 
