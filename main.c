@@ -15,7 +15,7 @@
 
 static int val = 0, sigCnt = 0;
 static int pipefd[2], file;
-static const struct timespec onesec = {1, 0};
+static const struct timespec twosec = {2, 0};
 static pid_t childpid, ppid;
 static void handle_termination(void);
 
@@ -64,11 +64,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    if(init_time() == -1) {
-        log_err("Init Time");
-        exit(EXIT_FAILURE);
-    }
-
     ppid = getpid();
 
     if ((childpid = fork()) == -1) {
@@ -78,8 +73,9 @@ int main(int argc, char *argv[])
    
     /* Child moving to other program or stopping execution */
     else if (childpid == 0) {
-        char *params[] = {"./ChildProgram", argv[1], NULL};
+        sleep(1);
         
+        char *params[] = {"./ChildProgram", argv[1], NULL};
         execv("./ChildProgram", params);
         
         _exit(EXIT_FAILURE);
@@ -89,7 +85,6 @@ int main(int argc, char *argv[])
         char c;
         struct sigaction sa;
         int ready;
-
         
         pipefd[0] = 0; 
         pipefd[1] = 0;
@@ -103,30 +98,26 @@ int main(int argc, char *argv[])
         sigemptyset(&sa.sa_mask);
 
         if(sigaction(SIGRTMIN, &sa, NULL) == -1) {
-            terminate_child(childpid);
             log_err("Sigaction");
             exit(EXIT_FAILURE);
         }
 
         if(sigaction(SIGINT, &sa, NULL) == -1) {
-            terminate_child(childpid);
             log_err("Sigaction");
             exit(EXIT_FAILURE);
         }
 
         if ((file = creat(argv[2], FILE_PERMS))== -1) {
-            terminate_child(childpid);
             log_err("open");
             exit(EXIT_FAILURE);
         }
 
         /* Init Pipe */
         if (pipe(pipefd) == -1) {
-            terminate_child(childpid);
             log_err("Pipe");
             exit(EXIT_FAILURE);
         }
-
+        
         /* Add pipe read-end to fd_set */
         FD_ZERO(&watchset);
         FD_SET(pipefd[0], &watchset);
@@ -137,7 +128,7 @@ int main(int argc, char *argv[])
             
             /* Wait for signals or data in pipe. Otherwise timeout */
             if ((ready = pselect(pipefd[0]+1, &inset, 
-                            NULL, NULL, &onesec, NULL)) < 1) 
+                            NULL, NULL, &twosec, NULL)) < 1) 
             {
                 /* Error handling*/
                if(!ready) {

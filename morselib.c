@@ -59,7 +59,7 @@ int encode_morse(char c)
 {
     int index;
     
-    if (isspace(c))
+    if (c == ' ')
         index = control_chars[0];
     else if (c == '\n')
         index = control_chars[1];

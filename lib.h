@@ -19,10 +19,6 @@
 #define SENDDELAY 10000
 
 
-/* Start "program" clock
- * RETURN: 0 for success, -1 for failure (with errno set)*/
-int init_time(void);
-
 /* Calculate time differences from the last time time was updated
  * RETURN: value of time difference in nano seconds*/
 long get_time_diff();

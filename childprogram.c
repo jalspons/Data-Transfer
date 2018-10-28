@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
     while((nread = read(file, buf, sizeof(buf))) > 0) { 
         for (int i = 0; i < nread; i++) {
-            if (isspace(buf[i])) {
+            if (buf[i] == ' ') {
                delay_sending(LONGPAUSE);
             } else {
                int code = encode_morse(buf[i]);

@@ -19,18 +19,16 @@
 
 /* TIME FUNCTIONS */
 
-static struct timespec prev, new;
-
-int init_time(void)
-{
-    return clock_gettime(CLOCK_MONOTONIC, &prev);
-}
+static struct timespec prev = {0, 0}, new = {0, 0};
 
 long get_time_diff()
-{
+{   
     if(clock_gettime(CLOCK_MONOTONIC, &new) == -1)
         log_err("clock_gettime");
-   
+ 
+    if (prev.tv_sec == 0)
+        prev = new;
+
     long prevtime = (long)prev.tv_sec * 1000000000L + prev.tv_nsec;
     long newtime = (long)new.tv_sec * 1000000000L + new.tv_nsec;
     long diff = newtime - prevtime;
@@ -39,7 +37,6 @@ long get_time_diff()
 
     return diff;
 }
-
 
 
 
